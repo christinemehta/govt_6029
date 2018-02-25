@@ -1,0 +1,190 @@
+---
+title: "HW1_Mehta"
+author: "Christine Mehta (cpm92)"
+output: html_notebook
+---
+
+
+#Section 1: Set up Workspace
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(gapminder)
+library(readr)
+
+working_dir <- getwd()
+data_dir <- file.path(working_dir, "Data")
+
+## load data
+
+democracy_csv <- read.csv("/Users/christinemehta/Dropbox/Cornell Academics/GOVT 6029/Assignment_1/Data/democracy.csv", stringsAsFactors = FALSE, na.strings = ".")
+View(democracy_csv)
+
+
+
+```
+
+#Section 2: Initial Data Exploration
+```{r}
+
+summary(democracy_csv)
+```
+
+```{r}
+
+##Histogram Political Liberties
+
+clean_theme <- theme(
+  panel.grid.major = element_blank(), 
+  panel.grid.minor = element_blank(),
+  panel.background = element_blank(),
+  axis.line = element_blank(),
+  axis.ticks.x = element_blank(),
+  axis.title.x = element_blank(),
+  axis.text.x = element_text(color = "black")
+)
+ggplot(democracy_csv, aes(x = POLLIB)) +
+  geom_histogram(binwidth = 0.5, bins = 7) +
+  xlim(0, 8) +
+  clean_theme 
+
+```
+
+```{r}
+## Histogram GDP Per Capita
+
+ggplot(democracy_csv, aes(x = GDPW)) +
+  geom_histogram(bins = 100)
+```
+
+```{r}
+## log of GDPW histogram
+
+ggplot(democracy_csv, aes(x= log(GDPW))) +
+  geom_histogram(bins = 100)
+```
+
+Description: Logging the GDPW transforms the heavily skewed distribution to a normal distribution.
+
+<br>
+
+#Section 3: Explore Relationships
+```{r}
+
+ggplot(democracy_csv, aes(x = POLLIB, y = GDPW)) +
+  geom_point()+
+  geom_jitter() +
+  clean_theme
+```
+
+```{r}
+ggplot(democracy_csv, aes(x = POLLIB, y = log(GDPW))) +
+  geom_point()+
+  geom_jitter() +
+  clean_theme
+```
+
+Description: The relationship between logged GDP per Cap and poitical liberties is distinctly more linear in this plot.
+
+```{r}
+ggplot(democracy_csv) +
+  geom_boxplot(aes(x = OIL, y = GDPW, group = OIL)) +
+  clean_theme
+```
+
+#Section 4: Tranform data and analyse
+
+```{r}
+##Calculate the mean GDP in countires wiht at least 40 percent Catholics. How does it compare to mean GDP per capita for all countries?
+  
+cathcountry <- filter(democracy_csv, CATH >= 40.0)
+
+summary(cathcountry)
+```
+
+Answer: The mean GDP per capita for countries with at least 40 percent Catholics is $10,295. The mean GDP per capita for all countries is $8,877. Majority Catholic countries have, on average, a higher GDP per capita than the same measure for all countries. 
+
+```{r echo = FALSE}
+summary(democracy_csv)
+```
+
+```{r}
+##Calculate the mean GDP per capita in countries with greater than 60 percent ELF60, less than 60 percent ELF60 and missing ELF60. 
+
+ELF60_G <- filter(democracy_csv, ELF60 > 0.6)
+ELF60_L <- filter(democracy_csv, ELF60 < 0.6)
+ELF60_NA <- filter(democracy_csv, is.na(ELF60))
+
+summary(ELF60_G)
+summary(ELF60_L)
+summary(ELF60_NA)
+```
+Answer: Countries with greater than 60 percent ethnolinguistic fractionalization have a mean GDP per capita of $3,591. Countries with less than 60 percent ethnolinguistic fractionalization have a mean GDP per capita of $11,804. Countries with missing ethnolinguistic fractionalization data have a mean GDP per capita of $7,767.
+
+```{r}
+##What was the median of average years of education in 1985 for all countries?
+
+countries_1985 <- filter(democracy_csv, YEAR == 1985)
+summary(countries_1985)
+
+```
+
+Answer: The median average years of education in 1985 ONLY for all countries is 5.625 years. 
+
+```{r}
+## Which country was (or countries were) closest to the median years of education in 1985 among all countries?
+## I am judging "closes to the median" to indicate countries with an average number of years of education falling between 5 and 6 years (given that the median is 5.625 years for all countries in 1985).
+
+glimpse(countries_1985$EDT)
+
+countries_1985 %>%
+  filter(EDT > 5 & EDT < 6)
+
+countries_1985 %>% 
+  filter(EDT == 5.625)
+
+countries_1985 %>%
+  filter(EDT > 5 & EDT < 6) %>% 
+    summary()
+
+
+
+```
+Answer: The result is eleven countries, Egypt, Lesotho, Madasgascar, Swaziland, El Salvador, Nicaragua, Bolivia, Colombia, Venezuela, China, and Thailand. The range of average of years of education in this group is 5.055 to 5.955. The closest country to the median is Venezuela. 
+
+```{r}
+##What was the median of the average years of education in 1985 for democracies?
+
+countries_1985 %>%
+  filter(REG == "1") %>% 
+  summary()
+
+```
+Answer: The median of the average years of education in 1985 for democracies was 7.805 years. 
+
+```{r}
+##Which democracy was (or democracies were) closest to the median years of education in 1985 among all democracies? 
+
+countries_1985 %>% 
+  filter(REG == "1") %>% 
+  filter(EDT > 7.0 & EDT < 8.0)
+
+```
+Answer: The closest single democracy in 1985 to median average years of education was Mauritius. The closest 7 democracies (between 7 and 8 years of education) were Peru, Austria, France, Greece, Italy and Spain.
+
+```{r}
+##What were the 25th and 75th percentiles of ethnolinguistic fractionalization for new and old countries (NEWC)?
+
+democracy_csv %>% 
+  filter(NEWC == "1") %>% 
+  summary()
+```
+Answer: For new countries (created after 1945) the 25th and 75th percentiles of ethnolinguistic fractionalization was 42 and 75 percent respectively. 
+
+```{r}
+democracy_csv %>% 
+  filter(NEWC == "0") %>% 
+  summary()
+```
+Answer: For old countries (created prior to 1945), the level to ethnolinguistic fractionalization at the 25th and 75th percentiles was 6 and 44 percent respectively. 
