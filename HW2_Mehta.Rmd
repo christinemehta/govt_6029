@@ -1,0 +1,265 @@
+---
+title: "HW2 Mehta Notebook"
+author: "Christine Mehta"
+output: html_document
+---
+
+
+```{r echo = FALSE, include = FALSE}
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(pander)
+library(knitr)
+
+working_dir <- getwd()
+data_dir <- file.path(working_dir, "Data")
+graph_dir <- file.path(working_dir, "Graphs")
+dir.create(graph_dir)
+sprinters_data <- read.csv("/Users/christinemehta/Dropbox/Cornell Academics/GOVT 6029/Assignment_2/Data/sprinters.csv")
+View(sprinters_data)
+str(sprinters_data)
+```
+
+
+#Problem 1
+
+##Section 1: Matrix Form
+
+```{r}
+##Create a matrix X comprised of three columns: a column of ones, a column made up of the variable year, and a column of variable women
+
+ones <- c(1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1)
+year <- c(sprinters_data$year)
+women <- c(sprinters_data$women)
+X <- cbind(ones,year,women)
+X
+```
+
+```{r}
+##Create a matrix y comprised of a single column, made up of the variable finish
+
+y <- sprinters_data %>% select(finish)
+y
+matrix_y <- as.matrix(y)
+matrix_y
+```
+
+```{r}
+##Solve formula using matrix commands
+
+A <- t(X) %*% X
+A1 <- solve(A)
+A2 <- X %*% A1
+A3 <- t(A2) %*% matrix_y
+pander(A3)
+```
+
+##Section 2: Fitting a Linear Model
+
+```{r}
+lm1 <- lm(finish~year+women, data = sprinters_data)
+summary(lm1)
+
+```
+Comparison: The calculation in section 1 produced the intercept, and coefficients of the multiple regression of finish on year and women. The results are the same.
+
+```{r}
+##Plot the multivariate regression
+sprinters_data
+preds <- predict(lm1, interval = "confidence")
+preds
+pred_plot <- cbind(sprinters_data, preds)
+
+ggplot(pred_plot, aes(x = finish, y = fit, ymin = lwr, ymax=upr)) +
+  geom_smooth()
+```
+
+```{r}
+lm2 <- lm(finish ~ women + year + women*year, data=sprinters_data)
+summary(lm2)
+```
+
+```{r}
+predict(lm2
+        )
+preds <- predict(lm2, sprinters_data, interval = "confidence", level = 0.95)
+
+pred_plot2 <- cbind(preds, sprinters_data)
+
+ggplot(pred_plot2, aes(x = finish, y = fit, ymin=lwr, ymax = upr)) +
+  geom_smooth()
+```
+
+##Section 3: Predicted Values
+
+```{r}
+## Men and Women's finishing times in 2001
+
+hyp <- data_frame(year = 2001, women = 0) 
+hyp2 <- data_frame(year = 2001, women = 1)
+predict(lm2, hyp, interval = "confidence")
+predict(lm2, hyp2, interval = "confidence")
+```
+The model predicts with 95 percent confidence that the finishing time for women in 2001 would be 10.681 seconds (CI lower = 10.55, CI upper = 10.83). The men's predicted finishing time in 2001 would be 9.8 seconds (CI lower = 9.68, CI upper = 9.93).
+
+
+```{r}
+##Finishing times for the year 2156 for men and women
+
+hyp3 <- data_frame(year = 2156, women = 0) 
+hyp4 <- data_frame(year = 2156, women = 1)
+predict(lm2, hyp3, interval = "confidence")
+predict(lm2, hyp4, interval = "confidence")
+```
+The predicted finishing time for men in the year 2156 is 8.1 seconds (CI lower = 7.65, CI upper = 8.55). The women's predicted finishing time would be 8.08 seconds (CI lower = 7.4, CI upper = 8.8).
+
+Do I trust the model's predictions? Yes, I do given the strong linear nature of the data and the strength of the model. However, I trust the 2001 result more than than the 2156 prediction as 2001 is a data point much closer to the data within our model and so I would expect that 2001 has a very low probability of being an outlier and therefore likely to fall within the model - whereas year 2156 is further from the data within the model.
+
+```{r}
+hyp5 <- data_frame(year = 3000, women = 0) 
+hyp6 <- data_frame(year = 3000, women = 1)
+predict(lm2, hyp5, interval = "confidence")
+predict(lm2, hyp6, interval = "confidence")
+```
+The assumption that finishing times will continue to decrease in a linear way is overworked in this model given that the model can't account for the limits of human capacity in running. Certainly, we can see in this model that finishing by actually gaining time is impossible - and so the model clearly falls apart in predicting this far out into the future. 
+
+#Problem 2
+
+##Section 4: Looking at your data beyond summary statistics
+
+```{r echo = FALSE}
+data("anscombe")
+View(anscombe)
+anscombe2 <- anscombe %>%
+    mutate(obs = row_number()) %>%
+    gather(variable_dataset, value, - obs) %>%
+    separate(variable_dataset, c("variable", "dataset"), sep = 1L) %>%
+    spread(variable, value) %>%
+    arrange(dataset, obs)
+View(anscombe2)
+```
+
+```{r}
+## calculate mean and standard deviations of x and y
+
+mean(anscombe2$x)
+sd(anscombe2$x)
+mean(anscombe2$y)
+sd(anscombe2$y)
+
+```
+
+```{r}
+##Run a linear regression between x and y for each data set
+
+## Dataset 1
+dataset1 <- anscombe2 %>% filter(dataset == 1)
+
+lm_dataset1 <- lm(x ~ y, data = dataset1)
+summary(lm_dataset1)
+
+##Dataset 2
+dataset2 <- anscombe2 %>% filter(dataset == 2)
+
+lm_dataset2 <- lm(x ~ y, data = dataset2)
+summary(lm_dataset2)
+
+##Dataset 3
+dataset3 <- anscombe2 %>% filter(dataset == 3)
+
+lm_dataset3 <- lm(x ~ y, data = dataset3)
+summary(lm_dataset3)
+
+##Dataset 4
+dataset4 <- anscombe2 %>% filter(dataset == 4)
+
+lm_dataset4 <- lm(x ~ y, data = dataset4)
+summary(lm_dataset4)
+```
+I would expect them to look similar as the regression results are very similar - however, I suspect they will not as summary statistics do not tell us what the data actually looks like! The fit of our model could be the same for many different types of datasets.
+
+```{r}
+##Scatterplot of each dataset
+
+ggplot(anscombe2, aes(x = x, y = y)) +
+  geom_point()+
+  facet_wrap(~dataset)
+
+```
+
+
+As I suspected, the regression model fit the data in all four datasets similar because the same regression line was the best fit for all four sets of these data even though they are obviously very different data, with sets 1 and 3 being the only two with data demonstrating a strong linear relationship.
+
+#Problem 3
+
+My Research Project: Machine Bias (Propublica)
+
+```{r}
+
+##The following four datasets are data obtained by ProPublica through the Freedom of Information Act on recidivism tests and risk assessments given to defendants in Broward County, FL in 2013 and 2014 (two-year period). The data captures 18,610 individuals who were assessed before being released from jail in Broward County, and whether or not they were re-arrested within a two year period. The data is a little unwieldly, with the three latter sets containing up to 57 variables. The data captures when the individual was originally arrested, demographic information about the individual, whether he/she was released, information about their COMPAS (risk of recidivism) score, and whether he or she was re-arrested within two years. 
+
+##This data enabled the ProPublica team to analyze the predictive power of the COMPAS test which produces risk of recidivism score for offenders all over the United States. Growing popularity of algorithms and tests to determine the 'risk' an offender poses to the community has resulted in tests like the COMPAS and ORAS to be adopted in many jurisdictions. However, it is an open question whether the tests effectively, and without bias, can predict recidivism, including violent recidivism.  to whether or not they actually recidivated within two years. The analysis conducted by Propublica journalists sought to analyze whether the COMPAS contained racial bias in its evaluations of defendants. I propose replicating the analysis to look at gender. 
+
+compas_data_raw <- read.csv("/Users/christinemehta/Dropbox/Cornell Academics/GOVT 6029/Final Project/Data/compas-scores-raw.csv")
+head(compas_data_raw)
+dim(compas_data_raw)
+
+compas_scores <- read.csv("/Users/christinemehta/Dropbox/Cornell Academics/GOVT 6029/Final Project/Data/compas-scores.csv")
+head(compas_scores)
+
+compas_scores_violent <- read.csv("/Users/christinemehta/Dropbox/Cornell Academics/GOVT 6029/Final Project/Data/compas-scores-two-years-violent.csv")
+head(compas_scores_violent)
+dim(compas_scores_violent)
+
+compas_scores_two_years <- read.csv("/Users/christinemehta/Dropbox/Cornell Academics/GOVT 6029/Final Project/Data/compas-scores-two-years.csv")
+head(compas_scores_two_years)
+dim(compas_scores_two_years)
+
+compas_scores_two_years %>% filter(sex == "Female")
+```
+
+```{r}
+compas_data_raw %>% filter(Sex_Code_Text == "Female") %>% 
+  ggplot(aes(x=RawScore)) +
+  geom_histogram(binwidth = 0.5)
+
+compas_data_raw %>% filter(Sex_Code_Text == "Male") %>% 
+  ggplot(aes(x=RawScore)) +
+  geom_histogram(binwidth = 0.5)
+
+compas_scores %>% filter(sex == "Female") %>% 
+ggplot(aes(x = decile_score)) +
+  geom_histogram(bins = 23) +
+  labs(title = "Distribution of Female Defendants Decile Scores", x = "Decile Score (0-10)", y = "Number of Female Defendants")
+
+compas_scores %>% filter(sex == "Male") %>% 
+ggplot(aes(x = decile_score)) +
+  geom_histogram(bins = 23) +
+  labs(title = "Distribution of Male Defendants Decile Scores", x = "Decile Score (0-10)", y = "Number of Male Defendants")
+
+```
+The distributions are not normal, logging does not help here. The decile score is categorical, but the raw scores found in the raw data are continuous. By plotting a histogram of the raw scores, we can see two normal distributions emerging for both male and female raw recidivism scores, with a break between 2 and 11. Could I split the data and look at the two sets of scores separately?
+
+The distributions appear to be very similar for men and women. I will also try plotting decile scores for men and women with violent recidivism scores.
+
+```{r}
+compas_scores_violent %>% filter(sex == "Female") %>% 
+ggplot(aes(x = v_decile_score)) +
+  geom_histogram(bins = 23) +
+  labs(title = "Distribution of Female Defendants Decile Scores (Violent)", x = "Decile Score (0-10)", y = "Number of Female Defendants") 
+
+```
+
+```{r}
+compas_scores_violent %>% filter(sex == "Male") %>% 
+ggplot(aes(x = v_decile_score)) +
+  geom_histogram(bins = 23) +
+  labs(title = "Distribution of Male Defendants Decile Scores (Violent)", x = "Decile Score (0-10)", y = "Number of Male Defendants")
+```
+
+It is challenging here to see the difference in distribution for men and women - they both skew towards lower-risk categories, with men possibly more evenly distributed across higher-risk scores. 
+
+GaussMarkov Theorem:
+This data set captures all the defendants for a two-year period in Broward County, and so can qualify as "randomized," however, the data is not normally distributed making it likely that we will need to use analysis other than linear regression to help analyze this data. 
